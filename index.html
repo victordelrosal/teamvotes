@@ -1,0 +1,738 @@
+<div class="card">
+                <div class="card-header">
+                    <div class="card-title">Team Names</div>
+                </div>
+                <div class="card-body">
+                    <div id="teamNamesContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                        <!-- Team name inputs will be added here -->
+                    </div>
+                    <button class="button button-primary" style="margin-top: 1rem;" onclick="saveTeamNames()">Save Team Names</button>
+                </div>
+            </div><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenAI Nanohackathon: Voting Interface</title>
+    <style>
+        :root {
+            --primary: #e91e63;
+            --primary-dark: #c2185b;
+            --primary-light: #f8bbd0;
+            --secondary: #9c27b0;
+            --background: #212121;
+            --card: #303030;
+            --text: #f5f5f5;
+            --text-light: #bdbdbd;
+            --border: #424242;
+            --success: #4caf50;
+            --error: #f44336;
+            --warning: #ff9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            flex-grow: 1;
+        }
+
+        .card {
+            background-color: var(--card);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .voting-grid {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        th {
+            background-color: #424242;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .team-header {
+            background-color: var(--primary);
+            color: white;
+            text-align: left;
+            min-width: 100px;
+        }
+
+        .team-name {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .vote-cell {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .vote-cell:not(.disabled):hover {
+            background-color: rgba(233, 30, 99, 0.2);
+        }
+
+        .vote-cell.selected {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .vote-cell.disabled {
+            background-color: #383838;
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .vote-cell.disabled::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0, 0, 0, 0.05),
+                rgba(0, 0, 0, 0.05) 10px,
+                rgba(0, 0, 0, 0.03) 10px,
+                rgba(0, 0, 0, 0.03) 20px
+            );
+        }
+
+        .count-display {
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        .team-selector {
+            display: flex;
+            align-items: center;
+        }
+
+        .team-selector label {
+            margin-right: 1rem;
+        }
+
+        .team-selector select {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background-color: #383838;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .button-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .button-secondary {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .button-secondary:hover {
+            background-color: rgba(0, 188, 212, 0.05);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .alert-error {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .alert-icon {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .results-section {
+            margin-top: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-card {
+            background-color: var(--card);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-title {
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .winner-badge {
+            display: inline-block;
+            background-color: var(--success);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        footer {
+            background-color: var(--card);
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--text-light);
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>GenAI Nanohackathon: Voting Interface</h1>
+    </header>
+
+    <div class="container">
+        <div id="alertBox" class="alert">
+            <span class="alert-icon">✓</span>
+            <span id="alertMessage"></span>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Configuration</div>
+            </div>
+            <div class="card-body">
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center;">
+                        <label for="totalTeams" style="margin-right: 1rem;">Number of Teams:</label>
+                        <input type="number" id="totalTeams" min="2" max="20" value="5" style="padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border); width: 80px; background-color: #383838; color: var(--text);">
+                    </div>
+                    <button class="button button-primary" onclick="updateTeamCount()">Update Teams</button>
+                </div>
+                <div class="team-selector">
+                    <label for="currentTeam">You are voting as:</label>
+                    <select id="currentTeam" onchange="updateVotingUI()">
+                        <option value="1">Team 1</option>
+                        <option value="2">Team 2</option>
+                        <option value="3">Team 3</option>
+                        <option value="4">Team 4</option>
+                        <option value="5">Team 5</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Voting Grid</div>
+                <div class="action-buttons">
+                    <button class="button button-secondary" onclick="resetTeamVotes()">Reset My Votes</button>
+                    <button class="button button-primary" onclick="saveVotes()">Save Votes</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="voting-grid">
+                    <table id="votingTable">
+                        <thead id="votingHead">
+                            <!-- Will be filled by JavaScript -->
+                        </thead>
+                        <tbody id="votingBody">
+                            <!-- Will be filled by JavaScript -->
+                        </tbody>
+                        <tfoot id="votingFoot">
+                            <!-- Will be filled by JavaScript -->
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card results-section">
+            <div class="card-header">
+                <div class="card-title">Results Dashboard</div>
+                <button class="button button-secondary" onclick="calculateResults()">Calculate Results</button>
+            </div>
+            <div class="card-body">
+                <div class="stats-grid" id="resultsGrid">
+                    <!-- Will be filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>GenAI Nanohackathon 2025 - Innovation Challenge Voting System</p>
+    </footer>
+
+    <script>
+        // Initialize voting data
+        let numTeams = 5;
+        let votingData = Array(numTeams + 1).fill().map(() => Array(numTeams + 1).fill(0));
+        let teamNames = Array(numTeams + 1).fill().map((_, i) => i === 0 ? "" : `Team ${i}`);
+        
+        // Get current team from selector
+        function getCurrentTeam() {
+            return parseInt(document.getElementById('currentTeam').value);
+        }
+
+        // Initialize voting table
+        function initVotingTable() {
+            // Create table header
+            const thead = document.getElementById('votingHead');
+            thead.innerHTML = '';
+            
+            const headerRow = document.createElement('tr');
+            const cornerCell = document.createElement('th');
+            cornerCell.className = 'team-header';
+            cornerCell.textContent = 'Teams';
+            headerRow.appendChild(cornerCell);
+            
+            for (let j = 1; j <= numTeams; j++) {
+                const headerCell = document.createElement('th');
+                headerCell.textContent = teamNames[j];
+                headerRow.appendChild(headerCell);
+            }
+            
+            thead.appendChild(headerRow);
+            
+            // Create table body
+            const tbody = document.getElementById('votingBody');
+            tbody.innerHTML = '';
+            
+            for (let i = 1; i <= numTeams; i++) {
+                const row = document.createElement('tr');
+                
+                // Team name cell
+                const nameCell = document.createElement('td');
+                nameCell.className = 'team-name';
+                nameCell.textContent = teamNames[i];
+                row.appendChild(nameCell);
+                
+                // Voting cells
+                for (let j = 1; j <= numTeams; j++) {
+                    const cell = document.createElement('td');
+                    cell.id = `vote-${i}-${j}`;
+                    cell.className = 'vote-cell';
+                    // Disable voting for your own team
+                    if (i === j) {
+                        cell.classList.add('disabled');
+                    } else {
+                        cell.addEventListener('click', () => toggleVote(i, j));
+                    }
+                    
+                    if (votingData[i][j] === 1) {
+                        cell.classList.add('selected');
+                        cell.textContent = 'Voted';
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                tbody.appendChild(row);
+            }
+            
+            // Create table footer
+            const tfoot = document.getElementById('votingFoot');
+            tfoot.innerHTML = '';
+            
+            const footerRow = document.createElement('tr');
+            const totalCell = document.createElement('td');
+            totalCell.className = 'team-name';
+            totalCell.textContent = 'Total Votes';
+            footerRow.appendChild(totalCell);
+            
+            for (let j = 1; j <= numTeams; j++) {
+                const totalValueCell = document.createElement('td');
+                totalValueCell.className = 'count-display';
+                totalValueCell.id = `team${j}-total`;
+                totalValueCell.textContent = '0';
+                footerRow.appendChild(totalValueCell);
+            }
+            
+            tfoot.appendChild(footerRow);
+            
+            updateVotingUI();
+            updateTotals();
+        }
+        
+        // Toggle vote
+        function toggleVote(voterTeam, votedTeam) {
+            const currentTeam = getCurrentTeam();
+            
+            // Only allow voting if it's the current team's row
+            if (voterTeam !== currentTeam) {
+                showAlert('You can only vote as your selected team.', 'error');
+                return;
+            }
+            
+            // Toggle vote
+            const cell = document.getElementById(`vote-${voterTeam}-${votedTeam}`);
+            if (cell.classList.contains('selected')) {
+                votingData[voterTeam][votedTeam] = 0;
+                cell.classList.remove('selected');
+                cell.textContent = '';
+            } else {
+                votingData[voterTeam][votedTeam] = 1;
+                cell.classList.add('selected');
+                cell.textContent = 'Voted';
+            }
+            
+            updateTotals();
+        }
+        
+        // Update the voting UI based on current team
+        function updateVotingUI() {
+            const currentTeam = getCurrentTeam();
+            
+            // Reset highlight on all rows
+            for (let i = 1; i <= numTeams; i++) {
+                const nameCell = document.querySelector(`#votingBody tr:nth-child(${i}) td:first-child`);
+                nameCell.style.fontWeight = i === currentTeam ? 'bold' : '500';
+                nameCell.style.color = i === currentTeam ? 'var(--primary-dark)' : 'var(--text)';
+            }
+            
+            // Highlight the current team's row
+            const currentRow = document.querySelector(`#votingBody tr:nth-child(${currentTeam})`);
+            if (currentRow) {
+                currentRow.style.backgroundColor = 'rgba(233, 30, 99, 0.15)';
+            }
+            
+            // Reset other rows
+            for (let i = 1; i <= numTeams; i++) {
+                if (i !== currentTeam) {
+                    const row = document.querySelector(`#votingBody tr:nth-child(${i})`);
+                    if (row) {
+                        row.style.backgroundColor = '';
+                    }
+                }
+            }
+        }
+        
+        // Update vote totals
+        function updateTotals() {
+            for (let j = 1; j <= numTeams; j++) {
+                let total = 0;
+                for (let i = 1; i <= numTeams; i++) {
+                    if (i !== j) { // Don't count self-votes
+                        total += votingData[i][j];
+                    }
+                }
+                document.getElementById(`team${j}-total`).textContent = total;
+            }
+        }
+        
+        // Reset votes for current team
+        function resetTeamVotes() {
+            const currentTeam = getCurrentTeam();
+            
+            for (let j = 1; j <= numTeams; j++) {
+                if (j !== currentTeam) { // Skip self
+                    votingData[currentTeam][j] = 0;
+                    const cell = document.getElementById(`vote-${currentTeam}-${j}`);
+                    cell.classList.remove('selected');
+                    cell.textContent = '';
+                }
+            }
+            
+            updateTotals();
+            showAlert('Your votes have been reset.', 'success');
+        }
+        
+        // Save votes
+        function saveVotes() {
+            // In a real app, this would send data to a server
+            // Here we just show a success message
+            showAlert('Votes saved successfully!', 'success');
+            calculateResults();
+        }
+        
+        // Calculate and display results
+        function calculateResults() {
+            const resultsGrid = document.getElementById('resultsGrid');
+            resultsGrid.innerHTML = '';
+            
+            let teamTotals = [];
+            
+            for (let j = 1; j <= numTeams; j++) {
+                let total = 0;
+                for (let i = 1; i <= numTeams; i++) {
+                    if (i !== j) { // Don't count self-votes
+                        total += votingData[i][j];
+                    }
+                }
+                teamTotals.push({ team: j, name: teamNames[j], votes: total });
+            }
+            
+            // Sort teams by votes (highest first)
+            teamTotals.sort((a, b) => b.votes - a.votes);
+            
+            // Create stat cards for each team
+            teamTotals.forEach((teamData, index) => {
+                const statCard = document.createElement('div');
+                statCard.className = 'stat-card';
+                
+                const title = document.createElement('div');
+                title.className = 'stat-title';
+                title.textContent = teamData.name;
+                
+                if (index === 0 && teamData.votes > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'winner-badge';
+                    badge.textContent = 'WINNER';
+                    title.appendChild(badge);
+                }
+                
+                const value = document.createElement('div');
+                value.className = 'stat-value';
+                value.textContent = `${teamData.votes} vote${teamData.votes !== 1 ? 's' : ''}`;
+                
+                statCard.appendChild(title);
+                statCard.appendChild(value);
+                resultsGrid.appendChild(statCard);
+            });
+        }
+        
+        // Show alert message
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            const alertMessage = document.getElementById('alertMessage');
+            
+            alertBox.className = `alert alert-${type}`;
+            alertMessage.textContent = message;
+            
+            alertBox.style.display = 'flex';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Update the number of teams
+        function updateTeamCount() {
+            const newCount = parseInt(document.getElementById('totalTeams').value);
+            
+            // Validate input
+            if (isNaN(newCount) || newCount < 2 || newCount > 20) {
+                showAlert('Please enter a valid number of teams (2-20).', 'error');
+                return;
+            }
+            
+            // Update team count
+            numTeams = newCount;
+            
+            // Create new voting data array
+            votingData = Array(numTeams + 1).fill().map(() => Array(numTeams + 1).fill(0));
+            
+            // Extend team names array if needed
+            if (teamNames.length <= numTeams) {
+                for (let i = teamNames.length; i <= numTeams; i++) {
+                    teamNames[i] = `Team ${i}`;
+                }
+            }
+            
+            // Update team selector
+            updateTeamSelector();
+            
+            // Rebuild table
+            initVotingTable();
+            
+            // Update team name inputs
+            updateTeamNameInputs();
+            
+            // Recalculate results
+            calculateResults();
+            
+            showAlert(`Updated to ${numTeams} teams.`, 'success');
+        }
+        
+        // Update team name inputs
+        function updateTeamNameInputs() {
+            const container = document.getElementById('teamNamesContainer');
+            container.innerHTML = '';
+            
+            for (let i = 1; i <= numTeams; i++) {
+                const inputGroup = document.createElement('div');
+                inputGroup.style.display = 'flex';
+                inputGroup.style.alignItems = 'center';
+                
+                const label = document.createElement('label');
+                label.textContent = `Team ${i}:`;
+                label.style.minWidth = '70px';
+                label.style.marginRight = '0.5rem';
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `team-name-${i}`;
+                input.maxLength = 30;
+                input.value = teamNames[i] || `Team ${i}`;
+                input.style.flex = '1';
+                input.style.padding = '0.5rem';
+                input.style.borderRadius = '4px';
+                input.style.border = '1px solid var(--border)';
+                input.style.backgroundColor = '#383838';
+                input.style.color = 'var(--text)';
+                
+                inputGroup.appendChild(label);
+                inputGroup.appendChild(input);
+                container.appendChild(inputGroup);
+            }
+        }
+        
+        // Save team names
+        function saveTeamNames() {
+            for (let i = 1; i <= numTeams; i++) {
+                const input = document.getElementById(`team-name-${i}`);
+                if (input) {
+                    const newName = input.value.trim() || `Team ${i}`;
+                    teamNames[i] = newName;
+                }
+            }
+            
+            // Update team selector
+            updateTeamSelector();
+            
+            // Rebuild table to reflect name changes
+            initVotingTable();
+            
+            // Recalculate results
+            calculateResults();
+            
+            showAlert('Team names saved successfully!', 'success');
+        }
+        
+        // Update team selector dropdown
+        function updateTeamSelector() {
+            const selector = document.getElementById('currentTeam');
+            selector.innerHTML = '';
+            
+            for (let i = 1; i <= numTeams; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = teamNames[i];
+                selector.appendChild(option);
+            }
+        }
+        
+        // Initialize the app
+        window.onload = function() {
+            initVotingTable();
+            updateTeamNameInputs();
+            calculateResults();
+        };
+    </script>
+</body>
+</html>
